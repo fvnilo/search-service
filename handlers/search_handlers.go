@@ -9,7 +9,6 @@ import (
 )
 
 func Populate(w http.ResponseWriter, req *http.Request) {
-	// TODO: Add Validations?
 	numberArr, ok := req.URL.Query()["number"]
 	if !ok {
 		requests.RespondWithError(w, http.StatusBadRequest, "Attach proper parameters")

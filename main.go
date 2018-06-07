@@ -4,15 +4,20 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/nylo-andry/search-service/handlers"
 )
 
 func main() {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	// TODO: Add Verbs and queries
-	mux.HandleFunc("/populate", handlers.Populate)
-	mux.HandleFunc("/search", handlers.Search)
+	r.HandleFunc("/populate", handlers.Populate).
+		Queries("number", "{number:[0-9]+}").
+		Methods("POST")
 
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	r.HandleFunc("/search", handlers.Search).
+		Queries("q", "{q:[A-Za-z0-9]+}", "from", "{from:[0-9]+}", "size", "{size:[0-9]+}").
+		Methods("GET")
+
+	log.Fatal(http.ListenAndServe(":8000", r))
 }
