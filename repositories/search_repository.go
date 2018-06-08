@@ -3,8 +3,10 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/icrowley/fake"
+	"github.com/nylo-andry/search-service/config"
 	"github.com/olivere/elastic"
 )
 
@@ -14,19 +16,25 @@ type User struct {
 	RealName string `json:"real_name"`
 }
 
-func Populate(number int) error {
-	// TODO: use env variables
-	client, err := elastic.NewClient(elastic.SetURL("http://elasticsearch:9200"))
-	if err != nil {
-		return err
-	}
+var elasticClient *elastic.Client
 
-	idxExists, err := client.IndexExists("users").Do(context.Background())
+func InitClient(conf config.Configurations) {
+	var err error
+
+	url := fmt.Sprintf("http://%s:%s", conf.ElasticHost, conf.ElasticPort)
+	elasticClient, err = elastic.NewClient(elastic.SetURL(url))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Populate(number int) error {
+	idxExists, err := elasticClient.IndexExists("users").Do(context.Background())
 	if err != nil {
 		return err
 	}
 	if !idxExists {
-		client.CreateIndex("users").Do(context.Background())
+		elasticClient.CreateIndex("users").Do(context.Background())
 	}
 
 	for i := 0; i < number; i++ {
@@ -35,7 +43,7 @@ func Populate(number int) error {
 			Email:    fake.EmailAddress(),
 			RealName: fake.FullName(),
 		}
-		_, err = client.Index().
+		_, err = elasticClient.Index().
 			Index("users").
 			Type("doc").
 			BodyJson(user).
@@ -48,12 +56,8 @@ func Populate(number int) error {
 }
 
 func Search(term string, from, size int) ([]*User, error) {
-	client, err := elastic.NewClient(elastic.SetURL("http://elasticsearch:9200"))
-	if err != nil {
-		return nil, err
-	}
 	q := elastic.NewMultiMatchQuery(term, "username", "email", "real_name").Fuzziness("AUTO:2,5")
-	res, err := client.Search().
+	res, err := elasticClient.Search().
 		Index("users").
 		Query(q).
 		From(from).

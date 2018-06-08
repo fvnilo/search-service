@@ -7,6 +7,12 @@ services:
       context: .
     ports:
       - "8080:8000"
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+    environment:
+      - "MS_ELASTICHOST=elasticsearch"
+      - "MS_ELASTICPORT=9200"
     networks:
       - service-network
   elasticsearch:
